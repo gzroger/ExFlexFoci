@@ -2,6 +2,7 @@ package com.gzroger.exflexfoci;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 
 import android.app.Activity;
@@ -24,19 +25,28 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
+import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 public class ExFlexFociActivity extends Activity {
+
+	private static final String PLAYER = "player";
+
+	private static final String PLAYER_ACTIVITY = "player_activity";
 
 	public List<DataSetObserver> rgobserver = new ArrayList<DataSetObserver>();
 
 	class Dbut extends SQLiteOpenHelper {
 
-		private static final int DATABASE_VERSION = 2;
+		private static final int DATABASE_VERSION = 3;
 		private static final String DATABASE_NAME = "dbut";
 
 	    Dbut(Context context) {
@@ -45,12 +55,25 @@ public class ExFlexFociActivity extends Activity {
 
 	    @Override
 	    public void onCreate(SQLiteDatabase db) {
-	        db.execSQL("CREATE TABLE player (NAME text)");
-	        db.setVersion(1);
+	        createPlayer(db);
+	        createPlayerActivity(db);
 	    }
+
+		private void createPlayer(SQLiteDatabase db) {
+			db.execSQL("CREATE TABLE "+PLAYER+" (NAME text)");
+		}
+
+		private void createPlayerActivity(SQLiteDatabase db) {
+			db.execSQL("CREATE TABLE "+PLAYER_ACTIVITY+" (NAME text, DATE text, payment NUMBER)");
+		}
 
 		@Override
 		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+
+			switch (oldVersion) {
+			case 2:
+				createPlayerActivity(db);
+			}
 		}
 	}
 	
@@ -88,14 +111,31 @@ public class ExFlexFociActivity extends Activity {
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-			TextView textw;
+			LinearLayout ll;
 			if (convertView == null) {
-				textw = (TextView) getLayoutInflater().inflate(R.layout.listwplayer_item, null, false);
+				ll = (LinearLayout) getLayoutInflater().inflate(R.layout.listwplayer_item, null, false);
+				//ll.setLayoutParams(new ListView.LayoutParams(ListView.LayoutParams.FILL_PARENT, ListView.LayoutParams.WRAP_CONTENT));
 			} else {
-				textw = (TextView) convertView;
+				ll = (LinearLayout) convertView;
 			}
-			textw.setText(rgplayer.get(position).stNameGet());
-			return textw;
+			TextView textw = (TextView) ll.findViewById(R.id.player_name);
+			final Player player = rgplayer.get(position);
+			textw.setText(player.stNameGet());
+			
+			ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
+			togglb.setChecked(fPresentGet(player));
+			togglb.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+				
+				@Override
+				public void onCheckedChanged(CompoundButton buttonView, boolean fChecked) {
+					setPresentPlayer(player, fChecked);
+					
+				}
+			});
+			
+			Button btnPay = (Button) ll.findViewById(R.id.player_pay);
+			
+			return ll;
 		}
 
 		@Override
@@ -180,7 +220,7 @@ public class ExFlexFociActivity extends Activity {
 
 	static final int DATE_DIALOG_ID = 0;
 
-	private Button btnFoci;    
+	private Button btnDate;    
 	private ListView listwPlayer;
 
 	private Calendar cal;
@@ -195,12 +235,30 @@ public class ExFlexFociActivity extends Activity {
 
 		db = new Dbut(getApplicationContext()).getWritableDatabase();
 		
-		btnFoci = (Button) findViewById(R.id.dateButton);
-		btnFoci.setOnClickListener(new OnClickListener() {
+		btnDate = (Button) findViewById(R.id.dateButton);
+		btnDate.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
 				showDialog(DATE_DIALOG_ID);				
+			}
+		});
+		Button btnDatePrev = (Button) findViewById(R.id.dateButtonPrev);
+		btnDatePrev.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				cal.add(Calendar.DAY_OF_MONTH, -7);
+				updateDisplay();								
+			}
+		});
+		Button btnDateNext = (Button) findViewById(R.id.dateButtonNext);
+		btnDateNext.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				cal.add(Calendar.DAY_OF_MONTH, 7);
+				updateDisplay();								
 			}
 		});
 		
@@ -218,7 +276,7 @@ public class ExFlexFociActivity extends Activity {
 
 	private void loadData() {
 		rgplayer.clear();
-		Cursor cur = db.query("player", new String[] {"name"}, null, null, null, null, "name");
+		Cursor cur = db.query(PLAYER, new String[] {"name"}, null, null, null, null, "name");
 		if (cur.moveToFirst()) {
 			do {
 				rgplayer.add(new Player(cur.getString(0)));
@@ -229,7 +287,9 @@ public class ExFlexFociActivity extends Activity {
 
 	// updates the date in the TextView
 	private void updateDisplay() {
-		btnFoci.setText(DateFormat.format("yyyy-MM-dd", cal));
+		btnDate.setText(DateFormat.format("yyyy-MM-dd", cal));
+		fillPlayerSet();
+		refreshListwPlayer();
 	}    
 
 	@Override
@@ -255,6 +315,8 @@ public class ExFlexFociActivity extends Activity {
 			updateDisplay();
 		}
 	};
+
+	private HashSet<String> setPlayerPresent = new HashSet<String>();
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -304,7 +366,7 @@ public class ExFlexFociActivity extends Activity {
 	protected void createPlayer(String stName) {
 		ContentValues cv = new ContentValues();
 		cv.put("name", stName);
-		db.insert("player", null, cv);
+		db.insert(PLAYER, null, cv);
 
 		loadData();
 		refreshListwPlayer();
@@ -315,4 +377,36 @@ public class ExFlexFociActivity extends Activity {
 			obs.onChanged();
 		}
 	}
+	
+
+	protected void setPresentPlayer(Player player, boolean fPresent) {
+		String date = DateFormat.format("yyyy-MM-dd", cal).toString();
+		if (fPresent) {
+			ContentValues cv = new ContentValues();
+			cv.put("name", player.stName);
+			cv.put("date", date);
+			cv.put("name", player.stName);
+			db.insert(PLAYER_ACTIVITY, null, cv);		
+		} else {
+			db.delete(PLAYER_ACTIVITY, "name = ? AND date = ? ", new String[] {player.stName, date});
+		}
+		
+	}
+
+	public boolean fPresentGet(Player player) {
+		return setPlayerPresent.contains(player.stName);
+	}
+
+	private void fillPlayerSet() {
+		setPlayerPresent.clear();
+		String date = DateFormat.format("yyyy-MM-dd", cal).toString();
+		Cursor cur = db.query(PLAYER_ACTIVITY, new String[] {"name"}, "date=?", new String[] {date}, null, null, null);
+		if (cur.moveToFirst()) {
+			do {
+				setPlayerPresent.add(cur.getString(0));
+			} while (cur.moveToNext());
+		}
+		cur.close();		
+	}
+	
 }
