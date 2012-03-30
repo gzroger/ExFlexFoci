@@ -2,6 +2,7 @@ package com.gzroger.exflexfoci;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -79,37 +80,37 @@ public class ExFlexFociActivity extends Activity {
 	
 	public class LitwaPlayer implements ListAdapter {
 
-		@Override
+		//@Override
 		public boolean areAllItemsEnabled() {
 			return false;
 		}
 
-		@Override
+		//@Override
 		public boolean isEnabled(int position) {
 			return false;
 		}
 
-		@Override
+		//@Override
 		public int getCount() {
 			return rgplayer.size();
 		}
 
-		@Override
+		//@Override
 		public Object getItem(int position) {
 			return rgplayer.get(position);
 		}
 
-		@Override
+		//@Override
 		public long getItemId(int position) {
 			return position;
 		}
 
-		@Override
+		//@Override
 		public int getItemViewType(int position) {
 			return 0;
 		}
 
-		@Override
+		//@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
 			LinearLayout ll;
 			if (convertView == null) {
@@ -120,13 +121,13 @@ public class ExFlexFociActivity extends Activity {
 			}
 			TextView textw = (TextView) ll.findViewById(R.id.player_name);
 			final Player player = rgplayer.get(position);
-			textw.setText(player.stNameGet());
+			textw.setText(player.stNameGet()+" "+monAmountGet(player));
 			
-			ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
+			final ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
 			togglb.setChecked(fPresentGet(player));
 			togglb.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 				
-				@Override
+				//@Override
 				public void onCheckedChanged(CompoundButton buttonView, boolean fChecked) {
 					setPresentPlayer(player, fChecked);
 					
@@ -134,31 +135,39 @@ public class ExFlexFociActivity extends Activity {
 			});
 			
 			Button btnPay = (Button) ll.findViewById(R.id.player_pay);
+			btnPay.setOnClickListener(new OnClickListener() {
+				
+				//@Override
+				public void onClick(View v) {
+					if (togglb.isChecked())
+						showPlayerPayment(player);
+				}
+			});
 			
 			return ll;
 		}
 
-		@Override
+		//@Override
 		public int getViewTypeCount() {
 			return 1;
 		}
 
-		@Override
+		//@Override
 		public boolean hasStableIds() {
 			return false;
 		}
 
-		@Override
+		//@Override
 		public boolean isEmpty() {
 			return rgplayer.isEmpty();
 		}
 
-		@Override
+		//@Override
 		public void registerDataSetObserver(DataSetObserver observer) {
 			ExFlexFociActivity.this.rgobserver .add(observer);
 		}
 
-		@Override
+		//@Override
 		public void unregisterDataSetObserver(DataSetObserver observer) {
 			ExFlexFociActivity.this.rgobserver.remove(observer);
 		}
@@ -238,7 +247,7 @@ public class ExFlexFociActivity extends Activity {
 		btnDate = (Button) findViewById(R.id.dateButton);
 		btnDate.setOnClickListener(new OnClickListener() {
 
-			@Override
+			//@Override
 			public void onClick(View v) {
 				showDialog(DATE_DIALOG_ID);				
 			}
@@ -246,7 +255,7 @@ public class ExFlexFociActivity extends Activity {
 		Button btnDatePrev = (Button) findViewById(R.id.dateButtonPrev);
 		btnDatePrev.setOnClickListener(new OnClickListener() {
 
-			@Override
+			//@Override
 			public void onClick(View v) {
 				cal.add(Calendar.DAY_OF_MONTH, -7);
 				updateDisplay();								
@@ -255,7 +264,7 @@ public class ExFlexFociActivity extends Activity {
 		Button btnDateNext = (Button) findViewById(R.id.dateButtonNext);
 		btnDateNext.setOnClickListener(new OnClickListener() {
 
-			@Override
+			//@Override
 			public void onClick(View v) {
 				cal.add(Calendar.DAY_OF_MONTH, 7);
 				updateDisplay();								
@@ -317,6 +326,7 @@ public class ExFlexFociActivity extends Activity {
 	};
 
 	private HashSet<String> setPlayerPresent = new HashSet<String>();
+	private HashMap<String, Integer> mpMonByPlayer = new HashMap<String, Integer>();
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -337,6 +347,35 @@ public class ExFlexFociActivity extends Activity {
 		}
 	}
 
+
+	private void showPlayerPayment(final Player player) {
+		AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+		alert.setTitle("Payment for "+player.stName);
+		alert.setMessage("Amount:");
+
+		// Set an EditText view to get user input 
+		final EditText input = new EditText(this);
+		alert.setView(input);
+
+		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				String date = DateFormat.format("yyyy-MM-dd", cal).toString();
+				ContentValues cv = new ContentValues();
+				cv.put("payment", input.getText().toString());
+				db.update(PLAYER_ACTIVITY, cv,  "name = ? AND date = ? ", new String[] {player.stName, date});	
+				refreshListwPlayer();
+			}
+		});
+
+		alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				// Canceled.
+			}
+		});
+		alert.show();
+	}    
+	
 	private void addNewPlayer() {
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
@@ -395,6 +434,10 @@ public class ExFlexFociActivity extends Activity {
 
 	public boolean fPresentGet(Player player) {
 		return setPlayerPresent.contains(player.stName);
+	}
+
+	public String monAmountGet(Player player2) {
+		return "";
 	}
 
 	private void fillPlayerSet() {
