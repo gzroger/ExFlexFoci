@@ -10,21 +10,16 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.database.Cursor;
 import android.database.DataSetObserver;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -32,52 +27,14 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
-import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 public class ExFlexFociActivity extends Activity {
 
-	private static final String PLAYER = "player";
-
-	private static final String PLAYER_ACTIVITY = "player_activity";
-
 	public List<DataSetObserver> rgobserver = new ArrayList<DataSetObserver>();
 
-	class Dbut extends SQLiteOpenHelper {
-
-		private static final int DATABASE_VERSION = 3;
-		private static final String DATABASE_NAME = "dbut";
-
-	    Dbut(Context context) {
-	        super(context, DATABASE_NAME, null, DATABASE_VERSION);
-	    }
-
-	    @Override
-	    public void onCreate(SQLiteDatabase db) {
-	        createPlayer(db);
-	        createPlayerActivity(db);
-	    }
-
-		private void createPlayer(SQLiteDatabase db) {
-			db.execSQL("CREATE TABLE "+PLAYER+" (NAME text)");
-		}
-
-		private void createPlayerActivity(SQLiteDatabase db) {
-			db.execSQL("CREATE TABLE "+PLAYER_ACTIVITY+" (NAME text, DATE text, payment NUMBER)");
-		}
-
-		@Override
-		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
-			switch (oldVersion) {
-			case 2:
-				createPlayerActivity(db);
-			}
-		}
-	}
-	
 	public class LitwaPlayer implements ListAdapter {
 
 		//@Override
@@ -115,37 +72,14 @@ public class ExFlexFociActivity extends Activity {
 			LinearLayout ll;
 			if (convertView == null) {
 				ll = (LinearLayout) getLayoutInflater().inflate(R.layout.listwplayer_item, null, false);
-				//ll.setLayoutParams(new ListView.LayoutParams(ListView.LayoutParams.FILL_PARENT, ListView.LayoutParams.WRAP_CONTENT));
 			} else {
 				ll = (LinearLayout) convertView;
 			}
-			TextView textw = (TextView) ll.findViewById(R.id.player_name);
-			final Player player = rgplayer.get(position);
-			textw.setText(player.stNameGet()+" "+monAmountGet(player));
-			
-			final ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
-			togglb.setChecked(fPresentGet(player));
-			togglb.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-				
-				//@Override
-				public void onCheckedChanged(CompoundButton buttonView, boolean fChecked) {
-					setPresentPlayer(player, fChecked);
-					
-				}
-			});
-			
-			Button btnPay = (Button) ll.findViewById(R.id.player_pay);
-			btnPay.setOnClickListener(new OnClickListener() {
-				
-				//@Override
-				public void onClick(View v) {
-					if (togglb.isChecked())
-						showPlayerPayment(player);
-				}
-			});
+			setListViewItemProperties(position, ll);
 			
 			return ll;
 		}
+
 
 		//@Override
 		public int getViewTypeCount() {
@@ -174,59 +108,6 @@ public class ExFlexFociActivity extends Activity {
 
 	}
 
-	public class Player {
-
-		String stName;
-		public Player(String stName) {
-			this.stName = stName;
-		}
-
-		public CharSequence stNameGet() {
-			return stName;
-		}
-
-		@Override
-		public String toString() {
-			return "Player [stName=" + stName + "]";
-		}
-
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + getOuterType().hashCode();
-			result = prime * result
-					+ ((stName == null) ? 0 : stName.hashCode());
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			Player other = (Player) obj;
-			if (!getOuterType().equals(other.getOuterType()))
-				return false;
-			if (stName == null) {
-				if (other.stName != null)
-					return false;
-			} else if (!stName.equals(other.stName))
-				return false;
-			return true;
-		}
-
-		private ExFlexFociActivity getOuterType() {
-			return ExFlexFociActivity.this;
-		}
-		
-
-	}
-
-
 	static final int DATE_DIALOG_ID = 0;
 
 	private Button btnDate;    
@@ -235,14 +116,15 @@ public class ExFlexFociActivity extends Activity {
 	private Calendar cal;
 	private List<Player> rgplayer = new ArrayList<Player>();
 
-	private SQLiteDatabase db;
+	private Dbacc dbacc;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
-		db = new Dbut(getApplicationContext()).getWritableDatabase();
+		Dbut dbut = new Dbut(getApplicationContext());
+		dbacc = new Dbacc(dbut.getWritableDatabase());
 		
 		btnDate = (Button) findViewById(R.id.dateButton);
 		btnDate.setOnClickListener(new OnClickListener() {
@@ -285,13 +167,7 @@ public class ExFlexFociActivity extends Activity {
 
 	private void loadData() {
 		rgplayer.clear();
-		Cursor cur = db.query(PLAYER, new String[] {"name"}, null, null, null, null, "name");
-		if (cur.moveToFirst()) {
-			do {
-				rgplayer.add(new Player(cur.getString(0)));
-			} while (cur.moveToNext());
-		}
-		cur.close();
+		rgplayer.addAll(dbacc.rgplayerAllGet());
 	}
 
 	// updates the date in the TextView
@@ -325,8 +201,7 @@ public class ExFlexFociActivity extends Activity {
 		}
 	};
 
-	private HashSet<String> setPlayerPresent = new HashSet<String>();
-	private HashMap<String, Integer> mpMonByPlayer = new HashMap<String, Integer>();
+	private HashSet<Player> setPlayerPresent = new HashSet<Player>();
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -360,10 +235,7 @@ public class ExFlexFociActivity extends Activity {
 
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int whichButton) {
-				String date = DateFormat.format("yyyy-MM-dd", cal).toString();
-				ContentValues cv = new ContentValues();
-				cv.put("payment", input.getText().toString());
-				db.update(PLAYER_ACTIVITY, cv,  "name = ? AND date = ? ", new String[] {player.stName, date});	
+				dbacc.setPaymentForCalPlayer(cal, player, input.getText().toString());
 				refreshListwPlayer();
 			}
 		});
@@ -403,11 +275,7 @@ public class ExFlexFociActivity extends Activity {
 
 
 	protected void createPlayer(String stName) {
-		ContentValues cv = new ContentValues();
-		cv.put("name", stName);
-		db.insert(PLAYER, null, cv);
-
-		loadData();
+		dbacc.createPlayer(stName);
 		refreshListwPlayer();
 	}
 
@@ -418,23 +286,6 @@ public class ExFlexFociActivity extends Activity {
 	}
 	
 
-	protected void setPresentPlayer(Player player, boolean fPresent) {
-		String date = DateFormat.format("yyyy-MM-dd", cal).toString();
-		if (fPresent) {
-			ContentValues cv = new ContentValues();
-			cv.put("name", player.stName);
-			cv.put("date", date);
-			cv.put("name", player.stName);
-			db.insert(PLAYER_ACTIVITY, null, cv);		
-		} else {
-			db.delete(PLAYER_ACTIVITY, "name = ? AND date = ? ", new String[] {player.stName, date});
-		}
-		
-	}
-
-	public boolean fPresentGet(Player player) {
-		return setPlayerPresent.contains(player.stName);
-	}
 
 	public String monAmountGet(Player player2) {
 		return "";
@@ -442,14 +293,33 @@ public class ExFlexFociActivity extends Activity {
 
 	private void fillPlayerSet() {
 		setPlayerPresent.clear();
-		String date = DateFormat.format("yyyy-MM-dd", cal).toString();
-		Cursor cur = db.query(PLAYER_ACTIVITY, new String[] {"name"}, "date=?", new String[] {date}, null, null, null);
-		if (cur.moveToFirst()) {
-			do {
-				setPlayerPresent.add(cur.getString(0));
-			} while (cur.moveToNext());
-		}
-		cur.close();		
+		setPlayerPresent.addAll(dbacc.rgplayerPresentGet(cal));		
+	}
+
+	private void setListViewItemProperties(int position, LinearLayout ll) {
+		TextView textw = (TextView) ll.findViewById(R.id.player_name);
+		final Player player = rgplayer.get(position);
+		textw.setText(player.stNameGet()+" "+monAmountGet(player));
+		
+		final ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
+		togglb.setChecked(setPlayerPresent.contains(player));
+		togglb.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			
+			//@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean fChecked) {
+				dbacc.setPresentPlayer(cal, player, fChecked);
+			}
+		});
+		
+		Button btnPay = (Button) ll.findViewById(R.id.player_pay);
+		btnPay.setOnClickListener(new OnClickListener() {
+			
+			//@Override
+			public void onClick(View v) {
+				if (togglb.isChecked())
+					showPlayerPayment(player);
+			}
+		});
 	}
 	
 }
