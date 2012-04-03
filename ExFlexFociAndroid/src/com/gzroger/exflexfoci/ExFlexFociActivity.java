@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -201,7 +202,7 @@ public class ExFlexFociActivity extends Activity {
 		}
 	};
 
-	private HashSet<Player> setPlayerPresent = new HashSet<Player>();
+	private Map<Player, String> setPlayerPresent = new HashMap<Player, String>();
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -275,7 +276,7 @@ public class ExFlexFociActivity extends Activity {
 
 
 	protected void createPlayer(String stName) {
-		dbacc.createPlayer(stName);
+		rgplayer.add( dbacc.createPlayer(stName) );
 		refreshListwPlayer();
 	}
 
@@ -286,23 +287,19 @@ public class ExFlexFociActivity extends Activity {
 	}
 	
 
-
-	public String monAmountGet(Player player2) {
-		return "";
-	}
-
 	private void fillPlayerSet() {
-		setPlayerPresent.clear();
-		setPlayerPresent.addAll(dbacc.rgplayerPresentGet(cal));		
+		setPlayerPresent = dbacc.mpPaymentForPlayerGet(cal);		
+		
+		;
 	}
 
 	private void setListViewItemProperties(int position, LinearLayout ll) {
 		TextView textw = (TextView) ll.findViewById(R.id.player_name);
 		final Player player = rgplayer.get(position);
-		textw.setText(player.stNameGet()+" "+monAmountGet(player));
+		textw.setText(player.stNameGet()+" "+setPlayerPresent.get(player));
 		
 		final ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
-		togglb.setChecked(setPlayerPresent.contains(player));
+		togglb.setChecked(setPlayerPresent.keySet().contains(player));
 		togglb.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			
 			//@Override
