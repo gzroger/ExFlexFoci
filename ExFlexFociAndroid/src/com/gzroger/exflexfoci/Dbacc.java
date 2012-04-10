@@ -37,6 +37,7 @@ public class Dbacc {
 		ContentValues cv = new ContentValues();
 		cv.put("payment", stMon);
 		db.update(Dbacc.PLAYER_ACTIVITY, cv,  "name = ? AND date = ? ", new String[] {player.stName, date});	
+		System.out.println("payment set for "+player.stName+", "+date+": "+stMon);
 	}
 
 
@@ -44,9 +45,13 @@ public class Dbacc {
 		Map<Player, String> mpPaymentForPlayer = new HashMap<Player, String>();
 		String date = DateFormat.format("yyyy-MM-dd", cal).toString();
 		Cursor cur = db.query(PLAYER_ACTIVITY, new String[] {"name", "payment"}, "date=?", new String[] {date}, null, null, null);
+		System.out.println("players present on "+date);
 		if (cur.moveToFirst()) {
 			do {
-				mpPaymentForPlayer.put(new Player(cur.getString(0)), cur.getString(1));
+				String stName = cur.getString(0);
+				String stMon = cur.getString(1);
+				System.out.println("player: "+stName+" ("+stMon+")");
+				mpPaymentForPlayer.put(new Player(stName), stMon);
 			} while (cur.moveToNext());
 		}
 		cur.close();
@@ -57,6 +62,7 @@ public class Dbacc {
 		ContentValues cv = new ContentValues();
 		cv.put("name", stName);
 		db.insert(Player.TABN, null, cv);
+		System.out.println("player created: "+stName);
 		return new Player(stName);
 	}
 	
@@ -69,8 +75,10 @@ public class Dbacc {
 			cv.put("date", date);
 			cv.put("payment", "0");
 			db.insert(Dbacc.PLAYER_ACTIVITY, null, cv);		
+			System.out.println("player present set: "+player.stName+", "+date+", 0");
 		} else {
 			db.delete(Dbacc.PLAYER_ACTIVITY, "name = ? AND date = ? ", new String[] {player.stName, date});
+			System.out.println("player present unset: "+player.stName+", "+date);
 		}
 		
 	}	
