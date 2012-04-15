@@ -76,7 +76,7 @@ public class ExFlexFociActivity extends Activity {
 			} else {
 				ll = (LinearLayout) convertView;
 			}
-			setListViewItemProperties(position, ll);
+			setListViewItemProperties(position, ll, cal);
 			
 			return ll;
 		}
@@ -293,21 +293,26 @@ public class ExFlexFociActivity extends Activity {
 		;
 	}
 
-	private void setListViewItemProperties(int position, LinearLayout ll) {
+	private void setListViewItemProperties(int position, LinearLayout ll, final Calendar calT) {
 		TextView textw = (TextView) ll.findViewById(R.id.player_name);
 		final Player player = rgplayer.get(position);
 		textw.setText(player.stNameGet()+" "+setPlayerPresent.get(player));
 		
 		final ToggleButton togglb = (ToggleButton) ll.findViewById(R.id.player_present);
+
+		togglb.setOnCheckedChangeListener(null);
+
 		togglb.setChecked(setPlayerPresent.keySet().contains(player));
+		
 		togglb.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			
 			//@Override
 			public void onCheckedChanged(CompoundButton buttonView, boolean fChecked) {
-				dbacc.setPresentPlayer(cal, player, fChecked);
+				if (cal.equals(calT))
+					dbacc.setPresentPlayer(cal, player, fChecked);
 			}
 		});
-		
+
 		Button btnPay = (Button) ll.findViewById(R.id.player_pay);
 		btnPay.setOnClickListener(new OnClickListener() {
 			
