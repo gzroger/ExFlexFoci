@@ -1,9 +1,9 @@
 package com.gzroger.exflexfoci;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +12,7 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.text.format.DateFormat;
@@ -21,16 +22,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.CompoundButton;
+import android.widget.*;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.DatePicker;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.ToggleButton;
 
 public class ExFlexFociActivity extends Activity {
 
@@ -116,8 +109,9 @@ public class ExFlexFociActivity extends Activity {
 
 	private Calendar cal;
 	private List<Player> rgplayer = new ArrayList<Player>();
+    private Map<Player, String> setPlayerPresent = new HashMap<Player, String>();
 
-	private Dbacc dbacc;
+    private Dbacc dbacc;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -202,8 +196,6 @@ public class ExFlexFociActivity extends Activity {
 		}
 	};
 
-	private Map<Player, String> setPlayerPresent = new HashMap<Player, String>();
-
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
@@ -218,13 +210,39 @@ public class ExFlexFociActivity extends Activity {
 		case R.id.addNewPlayer:
 			addNewPlayer();
 			return true;
+        case R.id.email:
+            sendInMail();
+            return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
 	}
 
+    private void sendInMail() {
+        String stMessage = stMessageCreate();
 
-	private void showPlayerPayment(final Player player) {
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_EMAIL  , new String[]{"zoltan.gaspar@gmail.com"});
+        i.putExtra(Intent.EXTRA_SUBJECT, "foci "+ SimpleDateFormat.getInstance().format(cal.getTime()));
+        i.putExtra(Intent.EXTRA_TEXT   , stMessage);
+        try {
+            startActivity(Intent.createChooser(i, "Send mail..."));
+        } catch (android.content.ActivityNotFoundException ex) {
+            Toast.makeText(ExFlexFociActivity.this, "There are no email clients installed.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String stMessageCreate() {
+        StringBuilder sb = new StringBuilder("Players: \n");
+        for (Player player : setPlayerPresent.keySet()) {
+            sb.append(player.stNameGet()); sb.append(": "); sb.append(setPlayerPresent.get(player)); sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+
+    private void showPlayerPayment(final Player player) {
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 
 		alert.setTitle("Payment for "+player.stName);
@@ -289,8 +307,6 @@ public class ExFlexFociActivity extends Activity {
 
 	private void fillPlayerSet() {
 		setPlayerPresent = dbacc.mpPaymentForPlayerGet(cal);		
-		
-		;
 	}
 
 	private void setListViewItemProperties(int position, LinearLayout ll, final Calendar calT) {

@@ -11,7 +11,8 @@
         android:label="@string/app_name" >
         <activity
             android:label="@string/app_name"
-            android:name=".ExFlexFociActivity" >
+            android:name=".ExFlexFociActivity"
+            android:icon="@drawable/football" >
             <intent-filter >
                 <action android:name="android.intent.action.MAIN" />
 

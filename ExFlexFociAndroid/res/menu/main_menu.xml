@@ -4,4 +4,8 @@
           android:icon="@drawable/ic_menu_add"
           android:title="@string/new_player"
     />
+    <item android:id="@+id/email"
+          android:icon="@drawable/ic_dialog_email"
+          android:title="@string/email"
+            />
 </menu>

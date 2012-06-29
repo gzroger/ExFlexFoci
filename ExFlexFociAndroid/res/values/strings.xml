@@ -4,5 +4,6 @@
     <string name="hello">Hello World, ExFlexFociActivity!</string>
     <string name="app_name">ExFlexFociAndroid</string>
     <string name="new_player">Add</string>
+    <string name="email">Send</string>
 
 </resources>
